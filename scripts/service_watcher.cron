@@ -1,0 +1,1 @@
+#*/5 * * * * /root/script/ftp-watcher.sh >> /root/script/ftp-watcher.log 2>&1 &

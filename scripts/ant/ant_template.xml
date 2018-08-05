@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project name="BDW-Workflow" default="scp-release" basedir=".">
+	<property file="build.properties" />
+
+	<!-- O/S Determin -->
+	<condition property="isMac">
+		<os family="mac" />
+	</condition>
+
+	<condition property="isWindows">
+		<os family="windows" />
+	</condition>
+
+	<condition property="isUnix">
+		<os family="unix" />
+	</condition>
+
+	<target name="clean">
+		<echo>---------------- CLEAN ----------------</echo>
+		<delete>
+			<fileset dir="oozie-workflow/summary.job/lib/" includes="**/*.jar">
+			</fileset>
+		</delete>
+		<delete>
+			<fileset dir="oozie-workflow/url.job/lib/" includes="**/*.jar">
+			</fileset>
+		</delete>
+		<delete>
+			<fileset dir="oozie-workflow/fullupload.job/lib/" includes="**/*.jar">
+			</fileset>
+		</delete>
+		<delete>
+			<fileset dir="oozie-workflow/" includes="**/*.tar">
+			</fileset>
+		</delete>
+	</target>
+
+	<target name="mvn-win-build" depends="clean" if="isWindows">
+		<echo>Windows Maven building ... </echo>
+		<exec dir="${basedir}" executable="mvn.bat">
+			<arg line="clean" />
+		</exec>
+		<exec dir="${basedir}" executable="mvn.bat">
+			<arg line="assembly:assembly" />
+		</exec>
+	</target>
+	
+	<target name="mvn-unix-build" depends="clean" if="isUnix">
+		<echo>Unix-like o/s Maven building ... </echo>
+		<exec dir="${basedir}" executable="mvn">
+			<arg line="clean" />
+		</exec>
+		<exec dir="${basedir}" executable="mvn">
+			<arg line="assembly:assembly" />
+		</exec>
+	</target>
+
+	<target name="package" depends="mvn-unix-build, mvn-win-build">
+		<tstamp>
+			<format property="TIME" pattern="yyyy-MM_dd-HH_mm_ss_SSS" />
+		</tstamp>
+		<echo>${TIME}</echo>
+		<move file="oozie-workflow/summary.job/lib/bdw-mapreduce-${release.version}-SNAPSHOT-jar-with-dependencies.jar" 
+			tofile="oozie-workflow/summary.job/lib/bdw-summary-${release.version}.jar" />
+
+		<copy file="oozie-workflow/summary.job/lib/bdw-summary-${release.version}.jar" 
+			tofile="oozie-workflow/fullupload.job/lib/bdw-fullupload-${release.version}.jar">
+		</copy>
+		
+		<copy file="oozie-workflow/summary.job/lib/bdw-summary-${release.version}.jar"
+			tofile="oozie-workflow/url.job/lib/bdw-url-${release.version}.jar">
+		</copy>
+		
+		<tar destfile="target/oozie-workflow-${release.version}.tar" 
+			basedir="oozie-workflow" />
+	</target>
+
+	<target name="scp-release" depends="package">
+
+		<scp file="target/oozie-workflow-${release.version}.tar" 
+			todir="${hadoop.userid}:${hadoop.password}@${hadoop.ip1}:${workflow.dir}/oozie-workflow-${release.version}.tar" 
+			trust="true">
+		</scp>
+
+		<scp file="target/oozie-workflow-${release.version}.tar" 
+			todir="${hadoop.userid}:${hadoop.password}@${hadoop.ip2}:${workflow.dir}/oozie-workflow-${release.version}.tar" 
+			trust="true">
+		</scp>
+	</target>
+
+	<target name="ftp-copy" depends="clean">
+		<exec dir="${basedir}" executable="mvn">
+			<arg line="clean" />
+		</exec>
+		<exec dir="${basedir}" executable="mvn">
+			<arg line="assembly:assembly" />
+		</exec>
+
+		<move file="oozie-workflow/fullupload.job/lib/bdw-fullupload-0.0.1-SNAPSHOT-jar-with-dependencies.jar" 
+			tofile="oozie-workflow/fullupload.job/lib/bdw-fullupload-${release.version}.jar" />
+
+		<ftp server="${ftp.server}" 
+			remotedir="${ftp.remotedir}" 
+			userid="${ftp.userid}" 
+			password="${ftp.password}" 
+			depends="yes">
+			<fileset dir="oozie-workflow" />
+		</ftp>
+	</target>
+</project>
