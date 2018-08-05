@@ -1,0 +1,14 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+bufsize = 1024
+f = open('img_sample.jpg', 'rb')
+h = open('img_smaple_copy.jpg', 'wb')
+
+data = f.read(bufsize)
+while data:
+    h.write(data)
+    data = f.read(bufsize)
+
+f.close()
+h.close()
